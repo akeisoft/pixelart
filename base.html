@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Игра: Собери звёзды</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #111;
+      color: #fff;
+      font-family: sans-serif;
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 20px;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <!-- Элемент для отображения счёта -->
+  <div id="score">Счёт: 0</div>
+  <!-- Canvas для рисования игры -->
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    // Получаем canvas и его контекст
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Устанавливаем размеры canvas равными размеру окна
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Обработка изменения размеров окна
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+
+    // Глобальные переменные игры
+    let score = 0;
+    const scoreElement = document.getElementById('score');
+    const stars = [];      // массив падающих звёзд
+    const particles = [];  // массив частиц для эффекта взрыва
+
+    // Объект игрока (представлен в виде зелёного прямоугольника)
+    const player = {
+      x: canvas.width / 2,
+      y: canvas.height - 50,
+      width: 80,
+      height: 20,
+      color: '#0f0',
+      draw() {
+        ctx.fillStyle = this.color;
+        // Рисуем игрока с центром в (x, y)
+        ctx.fillRect(this.x - this.width/2, this.y - this.height/2, this.width, this.height);
+      }
+    };
+
+    // Управление игроком: следим за движением мыши и перемещаем игрока по горизонтали
+    window.addEventListener('mousemove', (event) => {
+      player.x = event.clientX;
+    });
+
+    // Класс для падающих звёзд
+    class Star {
+      constructor(x, y, radius, speed) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.speed = speed;
+        this.color = '#ff0';
+      }
+      
+      update() {
+        this.y += this.speed;
+      }
+      
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.closePath();
+      }
+    }
+
+    // Класс для частиц, создающих эффект взрыва при поимке звезды
+    class Particle {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        // Задаём случайную скорость по X и Y
+        this.velocityX = (Math.random() - 0.5) * 4;
+        this.velocityY = (Math.random() - 0.5) * 4;
+        this.radius = Math.random() * 3 + 1;
+        this.alpha = 1;
+        // Используем желтый цвет (RGB: 255,255,0)
+        this.color = 'rgba(255, 255, 0,';
+      }
+      
+      update() {
+        this.x += this.velocityX;
+        this.y += this.velocityY;
+        // Постепенно уменьшаем прозрачность
+        this.alpha -= 0.02;
+      }
+      
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color + this.alpha + ')';
+        ctx.fill();
+        ctx.closePath();
+        ctx.restore();
+      }
+    }
+
+    // Функция создания новой звезды в случайной позиции сверху экрана
+    function spawnStar() {
+      const x = Math.random() * canvas.width;
+      const y = -20; // старт за верхней границей экрана
+      const radius = Math.random() * 3 + 2;
+      const speed = Math.random() * 2 + 1;
+      stars.push(new Star(x, y, radius, speed));
+    }
+
+    // Запускаем создание звезд каждые 500 миллисекунд
+    setInterval(spawnStar, 500);
+
+    // Основной цикл игры
+    function animate() {
+      // Закрашиваем фон полупрозрачным слоем для создания эффекта следа (trail effect)
+      ctx.fillStyle = 'rgba(17, 17, 17, 0.5)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Рисуем игрока
+      player.draw();
+      
+      // Обновляем и рисуем каждую звезду
+      for (let i = stars.length - 1; i >= 0; i--) {
+        const star = stars[i];
+        star.update();
+        star.draw();
+        
+        // Проверяем столкновение звезды с игроком (простейшая AABB-проверка)
+        if (
+          star.x > player.x - player.width/2 &&
+          star.x < player.x + player.width/2 &&
+          star.y + star.radius > player.y - player.height/2 &&
+          star.y - star.radius < player.y + player.height/2
+        ) {
+          // Удаляем звезду из массива
+          stars.splice(i, 1);
+          // Увеличиваем счёт
+          score += 1;
+          scoreElement.textContent = 'Счёт: ' + score;
+          
+          // Создаём частицы для эффекта взрыва
+          for (let j = 0; j < 20; j++) {
+            particles.push(new Particle(star.x, star.y));
+          }
+        } else if (star.y - star.radius > canvas.height) {
+          // Если звезда ушла за пределы экрана, удаляем её
+          stars.splice(i, 1);
+        }
+      }
+      
+      // Обновляем и рисуем частицы
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.update();
+        p.draw();
+        // Удаляем частицы, когда они становятся полностью прозрачными
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+        }
+      }
+      
+      requestAnimationFrame(animate);
+    }
+
+    // Запуск анимации
+    animate();
+  </script>
+</body>
+</html>

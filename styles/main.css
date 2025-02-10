@@ -1,0 +1,11 @@
+span {
+    font-style: oblique;
+    background-color: aqua;
+
+}
+
+.ProcStyle {
+    font-style: inherit;
+    background-color: blueviolet;
+    
+}
