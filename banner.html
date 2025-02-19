@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Рекламный баннер</title>
+  <style>
+    /* Сброс отступов */
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    /* Стили для canvas (фон) */
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      background: #333;
+    }
+    /* Стили для баннера */
+    .banner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      text-align: center;
+      color: #fff;
+    }
+    .banner h1 {
+      font-size: 48px;
+      margin: 0;
+    }
+    .banner p {
+      font-size: 24px;
+      margin: 10px 0;
+    }
+    .banner button {
+      padding: 10px 20px;
+      font-size: 18px;
+      border: none;
+      cursor: pointer;
+      background: #ff5722;
+      color: #fff;
+      border-radius: 5px;
+      transition: background 0.3s;
+    }
+    .banner button:hover {
+      background: #e64a19;
+    }
+  </style>
+</head>
+<body>
+  <!-- Canvas для анимации заднего фона -->
+  <canvas id="bannerCanvas"></canvas>
+  
+  <!-- Баннер с текстом и кнопкой -->
+  <div class="banner">
+    <h1>Новый продукт!</h1>
+    <p>Откройте для себя инновации</p>
+    <button>Узнать больше</button>
+  </div>
+  
+  <!-- Подключение библиотек GSAP и TweenJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
+  <script src="https://code.createjs.com/1.0.0/tweenjs.min.js"></script>
+  
+  <script>
+    /* Анимация элементов баннера с помощью GSAP */
+    gsap.from(".banner h1", { duration: 1, opacity: 0, y: -50, ease: "bounce" });
+    gsap.from(".banner p", { duration: 1, opacity: 0, x: -100, delay: 0.5 });
+    gsap.from(".banner button", { duration: 1, opacity: 0, scale: 0, delay: 1 });
+    
+    /* Анимация на Canvas с TweenJS */
+    const canvas = document.getElementById("bannerCanvas");
+    const ctx = canvas.getContext("2d");
+    
+    // Устанавливаем размеры canvas
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // Объект для анимации (движущийся круг)
+    let circle = {
+      x: -50,
+      y: canvas.height / 2,
+      radius: 30
+    };
+    
+    // Функция для отрисовки круга
+    function drawCircle() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 165, 0, 0.5)"; // оранжевый цвет
+      ctx.fill();
+      ctx.closePath();
+    }
+    
+    // Основной цикл отрисовки для canvas
+    function animate() {
+      drawCircle();
+      requestAnimationFrame(animate);
+    }
+    animate();
+    
+    // Анимация движения круга с помощью TweenJS
+    function tweenCircle() {
+      createjs.Tween.get(circle, { loop: true })
+        .to({ x: canvas.width + 50 }, 4000, createjs.Ease.getPowInOut(2))
+        .to({ x: -50 }, 0);
+    }
+    tweenCircle();
+    
+    // Обновляем TweenJS с частотой 60 кадров в секунду
+    createjs.Ticker.framerate = 60;
+    createjs.Ticker.addEventListener("tick", function(event) {
+      // TweenJS автоматически обновляет свойства объекта circle
+    });
+    
+    // Обработка изменения размеров окна
+    window.addEventListener("resize", function() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      circle.y = canvas.height / 2;
+    });
+  </script>
+</body>
+</html>
